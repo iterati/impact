@@ -49,27 +49,32 @@ void unpackColor(uint8_t color, uint8_t *r, uint8_t *g, uint8_t *b) {
 #define INOVA_CONFIG    10
 
 void iNova::render(uint8_t *r, uint8_t *g, uint8_t *b) {
+  _r = 0, _g = 0; _b = 0;
+
   switch (op_mode) {
-    case INOVA_OFF:
-      _r = 0, _g = 0; _b = 0;
-      break;
     case INOVA_HIGH_HELD:
-    case INOVA_HIGH:
       if (tick >= 200) {
         cur_color = (cur_color + 1) % 3;
         tick = 0;
       }
       unpackColor(palette[cur_color], &_r, &_g, &_b);
       break;
+    case INOVA_HIGH:
+      if (tick >= 200) {
+        cur_color = (cur_color + 1) % 3;
+        tick = 0;
+      }
+      if (button_state == 0) {
+        unpackColor(palette[cur_color], &_r, &_g, &_b);
+      }
+      break;
     case INOVA_LOW:
       if (tick >= 20) {
         cur_color = (cur_color + 1) % 3;
         tick = 0;
       }
-      if (tick < 2) {
+      if (tick < 2 && button_state == 0) {
         unpackColor(palette[cur_color], &_r, &_g, &_b);
-      } else {
-        _r = 0, _g = 0; _b = 0;
       }
       break;
     case INOVA_BLINK:
@@ -77,17 +82,14 @@ void iNova::render(uint8_t *r, uint8_t *g, uint8_t *b) {
         cur_color = (cur_color + 1) % 3;
         tick = 0;
       }
-      if (tick < 20) {
+      if (tick < 20 && button_state == 0) {
         unpackColor(palette[cur_color], &_r, &_g, &_b);
-      } else {
-        _r = 0, _g = 0; _b = 0;
       }
       break;
     case INOVA_CONFIG:
       unpackColor(palette[cur_color], &_r, &_g, &_b);
       break;
     default:
-      _r = 0, _g = 0; _b = 0;
       break;
   }
   tick++;
