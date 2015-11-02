@@ -9,7 +9,7 @@
 #include "elapsedMillis.h"
 #include "modes.h"
 
-uint8_t current_version = 10;
+uint8_t current_version = 11;
 // ********************************************************************
 
 #define PIN_R 9

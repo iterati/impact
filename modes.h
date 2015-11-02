@@ -3,6 +3,7 @@
 
 #include <Arduino.h>
 #include <EEPROM.h>
+#include "palette.h"
 
 #define CMD_NOOP          0
 #define CMD_NEXT_MODE     1

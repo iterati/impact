@@ -1,44 +1,6 @@
 #include "modes.h"
-#include <avr/pgmspace.h>
 
 uint8_t _r, _g, _b;
-
-const PROGMEM uint8_t color_palette[26][3] = {
-  {255,   0,   0},
-  {252,  64,   0},
-  {248, 128,   0},
-  {244, 192,   0},
-  {240, 240,   0},
-  {192, 244,   0},
-  {128, 248,   0},
-  { 64, 252,   0},
-  {  0, 255,   0},
-  {  0, 252,  64},
-  {  0, 248, 128},
-  {  0, 244, 192},
-  {  0, 240, 240},
-  {  0, 192, 244},
-  {  0, 128, 248},
-  {  0,  64, 252},
-  {  0,   0, 255},
-  { 64,   0, 252},
-  {128,   0, 248},
-  {192,   0, 244},
-  {240,   0, 240},
-  {244,   0, 192},
-  {248,   0, 128},
-  {252,   0,  64},
-  {255, 255, 255},
-  {  0,   0,   0},
-};
-
-void unpackColor(uint8_t color, uint8_t *r, uint8_t *g, uint8_t *b) {
-  uint8_t shade = color >> 6;                                   // shade is first 2 bits
-  uint8_t idx = color & 0b00111111;                             // palette index is last 6 bits
-  *r = pgm_read_byte(&color_palette[idx][0]); *r = *r >> shade; // get red value and shade
-  *g = pgm_read_byte(&color_palette[idx][1]); *g = *g >> shade; // get green value and shade
-  *b = pgm_read_byte(&color_palette[idx][2]); *b = *b >> shade; // get blue value and shade
-}
 
 #define INOVA_TIMEOUT   6000
 #define INOVA_OFF       0
@@ -57,7 +19,7 @@ void iNova::render(uint8_t *r, uint8_t *g, uint8_t *b) {
         cur_color = (cur_color + 1) % 3;
         tick = 0;
       }
-      unpackColor(palette[cur_color], &_r, &_g, &_b);
+      unpackColor(palette[cur_color], _r, _g, _b);
       break;
     case INOVA_HIGH:
       if (tick >= 200) {
@@ -65,7 +27,7 @@ void iNova::render(uint8_t *r, uint8_t *g, uint8_t *b) {
         tick = 0;
       }
       if (button_state == 0) {
-        unpackColor(palette[cur_color], &_r, &_g, &_b);
+        unpackColor(palette[cur_color], _r, _g, _b);
       }
       break;
     case INOVA_LOW:
@@ -74,7 +36,7 @@ void iNova::render(uint8_t *r, uint8_t *g, uint8_t *b) {
         tick = 0;
       }
       if (tick < 2 && button_state == 0) {
-        unpackColor(palette[cur_color], &_r, &_g, &_b);
+        unpackColor(palette[cur_color], _r, _g, _b);
       }
       break;
     case INOVA_BLINK:
@@ -83,11 +45,11 @@ void iNova::render(uint8_t *r, uint8_t *g, uint8_t *b) {
         tick = 0;
       }
       if (tick < 20 && button_state == 0) {
-        unpackColor(palette[cur_color], &_r, &_g, &_b);
+        unpackColor(palette[cur_color], _r, _g, _b);
       }
       break;
     case INOVA_CONFIG:
-      unpackColor(palette[cur_color], &_r, &_g, &_b);
+      unpackColor(palette[cur_color], _r, _g, _b);
       break;
     default:
       break;
@@ -203,7 +165,7 @@ int8_t iNova::handlePress(bool pressed) {
           break;
         case 1:
           if (!pressed) {
-            palette[cur_color] = (palette[cur_color] + 1) % 26;
+            palette[cur_color] = (palette[cur_color] + 1) % NUM_COLORS;
             tick = counter = 0;
             button_state = 0;
           } else if (counter >= 2000) {
