@@ -4,12 +4,12 @@
 #include <Arduino.h>
 #include <Wire.h>
 #include <EEPROM.h>
-#include <avr/sleep.h>
-#include <avr/power.h>
+#include <avr/wdt.h>
+#include "LowPower.h"
 #include "elapsedMillis.h"
 #include "modes.h"
 
-uint8_t current_version = 11;
+#define EEPROM_VERSION  99
 // ********************************************************************
 
 #define PIN_R 9
@@ -18,27 +18,38 @@ uint8_t current_version = 11;
 #define PIN_BUTTON 2
 #define PIN_LDO A3
 
+#define ADDR_SLEEPING   1022
+#define ADDR_VERSION    1023
+
 elapsedMicros limiter = 0;
 iNova mode0 = iNova(0, 8, 16);
 Mode *modes[1] = {&mode0};
 Mode *mode = modes[0];
 
 void setup() {
-  power_spi_disable();
+  Serial.begin(57600);
+
   pinMode(PIN_R, OUTPUT);
   pinMode(PIN_G, OUTPUT);
   pinMode(PIN_B, OUTPUT);
   pinMode(PIN_BUTTON, INPUT);
   pinMode(PIN_LDO, OUTPUT);
-  digitalWrite(PIN_LDO, HIGH);
 
-  if (current_version != EEPROM.read(1000)) {
+  attachInterrupt(0, pushInterrupt, FALLING);
+  if (EEPROM.read(ADDR_SLEEPING)) {
+    EEPROM.write(ADDR_SLEEPING, 0);
+    LowPower.powerDown(SLEEP_FOREVER, ADC_OFF, BOD_OFF);
+  }
+  detachInterrupt(0);
+
+  if (EEPROM_VERSION != EEPROM.read(ADDR_VERSION)) {
     mode->save(1004);
-    EEPROM.update(1000, current_version);
+    EEPROM.update(ADDR_VERSION, EEPROM_VERSION);
   } else {
     mode->load(1004);
   }
 
+  digitalWrite(PIN_LDO, HIGH);
   mode->reset();
 
   noInterrupts();
@@ -47,14 +58,13 @@ void setup() {
   TCCR1B = (TCCR1B & 0b11111000) | 0b001;  // no prescaler ~1/64ms
   interrupts();
 
-  delay(4000);
+  delay(40);
   limiter = 0;
 }
 
 void loop() {
-  handleModePress(digitalRead(PIN_BUTTON) == LOW);
-
   uint8_t r, g, b;
+  handleModePress(digitalRead(PIN_BUTTON) == LOW);
   mode->render(&r, &g, &b);
   writeFrame(r, g, b);
 }
@@ -120,24 +130,12 @@ void enterSleep() {
   digitalWrite(PIN_LDO, LOW);
   delay(4000);
 
-  // Set sleep mode and power down
-  set_sleep_mode(SLEEP_MODE_PWR_DOWN);
-  sleep_enable();
-  noInterrupts();
-  attachInterrupt(0, pushInterrupt, FALLING);
-  EIFR = bit(INTF0);
-  MCUCR = bit(BODS) | bit(BODSE);
-  MCUCR = bit(BODS);
-  interrupts();
-  sleep_cpu();
+  EEPROM.write(ADDR_SLEEPING, 1);
+  delay(4000);
+  wdt_enable(WDTO_15MS);
 
-  // Wait until button is releaed
-  /* while (digitalRead(PIN_BUTTON) == LOW) {} */
   digitalWrite(PIN_LDO, HIGH);
-  /* mode->reset(); */
 }
 
 void pushInterrupt() {
-  sleep_disable();
-  detachInterrupt(0);
 }

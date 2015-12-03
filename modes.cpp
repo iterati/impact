@@ -73,8 +73,9 @@ int8_t iNova::handlePress(bool pressed) {
         counter = 0;
         button_state = 1;
         op_mode = INOVA_HIGH_HELD;
-      } else if (counter > 10000) {
-        return 3;
+      } else if (counter > 1000) {
+        Serial.println(F("delay reached, sleeping"));
+        return CMD_SLEEP;
       }
       break;
 
